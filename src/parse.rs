@@ -89,12 +89,10 @@ named!(record<&[u8], Packet>, do_parse!(
 
 pub fn parse(data: &[u8]) -> Result<Packet> {
     match record(data) {
-        IResult::Done(rem, packet) => {
-            if rem.is_empty() {
-                Ok(packet)
-            } else {
-                bail!("unxepected trailing data: {:?}", rem)
-            }
+        IResult::Done(rem, packet) => if rem.is_empty() {
+            Ok(packet)
+        } else {
+            bail!("unxepected trailing data: {:?}", rem)
         },
         other => bail!("parse error: {:?}", other),
     }
