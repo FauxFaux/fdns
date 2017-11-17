@@ -1,7 +1,7 @@
+use nom::be_u8;
 use nom::be_u16;
 use nom::be_u32;
 use nom::IResult;
-use nom::Needed;
 
 use errors::*;
 use usize_from;
@@ -30,37 +30,15 @@ pub struct Rr<'a> {
     data: &'a [u8],
 }
 
-#[cfg(nope)]
-named!(label<&[u8], (Vec<&[u8]>, &[u8])>,
-    many_till!(
-        length_bytes!(be_u8),
-        alt_complete!(
-            tag!(b"\0") |
-            tag_bits!(u8, 2, 0b11)
-        )
-    ));
-
-fn label(from: &[u8]) -> IResult<&[u8], &[u8]> {
-    let mut len = 0;
-    loop {
-        let word = &from[len..];
-        if word.is_empty() {
-            return IResult::Incomplete(Needed::Size(len + 1));
-        }
-
-        let word_len = usize::from(word[0]);
-
-        if 0 == word_len || word_len > 63 {
-            return IResult::Done(&from[len + 1..], &from[..len + 1]);
-        }
-
-        if word.len() < word_len {
-            return IResult::Incomplete(Needed::Size(len + word_len));
-        }
-
-        len += 1 + word_len;
-    }
+fn is_end_byte(val: &[u8]) -> bool {
+    0 == val[0] || val[0] > 63
 }
+
+named!(label<&[u8], &[u8]>,
+    recognize!(many_till!(
+        length_bytes!(be_u8),
+        verify!(take!(1), is_end_byte)
+    )));
 
 named!(question<&[u8], Question>, do_parse!(
     label:     label >>
