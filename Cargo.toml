@@ -4,9 +4,10 @@ name = "fdns"
 version = "0.1.0"
 
 [dependencies]
+byteorder = "1"
 error-chain = "0.11"
 mio = "0.6"
 
 [dependencies.nom]
-version = "3"
 features = ["nightly"]
+version = "3"

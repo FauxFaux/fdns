@@ -8,7 +8,7 @@ use usize_from;
 
 #[derive(Debug)]
 pub struct Packet<'a> {
-    transaction_id: u16,
+    pub transaction_id: u16,
     flags: u16,
     questions: Vec<Question<'a>>,
     answers: Vec<Rr<'a>>,
@@ -29,6 +29,72 @@ pub struct Rr<'a> {
     question: Question<'a>,
     ttl: u32,
     data: &'a [u8],
+}
+
+pub enum OpCode {
+    Query,
+    IQuery,
+    Status,
+    Unknown,
+}
+
+pub enum RCode {
+    NoError,
+    FormatError,
+    ServerFail,
+    NxDomain,
+    NotImplemented,
+    Refused,
+    Unknown,
+}
+
+impl<'a> Packet<'a> {
+    pub fn is_query(&self) -> bool {
+        has_bit(self.flags, 15)
+    }
+
+    pub fn is_authoritative(&self) -> bool {
+        has_bit(self.flags, 10)
+    }
+
+    pub fn is_truncated(&self) -> bool {
+        has_bit(self.flags, 9)
+    }
+
+    pub fn is_recursion_desired(&self) -> bool {
+        has_bit(self.flags, 8)
+    }
+
+    pub fn is_recursion_available(&self) -> bool {
+        has_bit(self.flags, 7)
+    }
+
+    pub fn opcode(&self) -> OpCode {
+        use self::OpCode::*;
+        match (self.flags << 11) & 0b1111 {
+            0 => Query,
+            1 => IQuery,
+            2 => Status,
+            _ => Unknown,
+        }
+    }
+
+    pub fn rcode(&self) -> RCode {
+        use self::RCode::*;
+        match self.flags & 0b1111 {
+            0 => NoError,
+            1 => FormatError,
+            2 => ServerFail,
+            3 => NxDomain,
+            4 => NotImplemented,
+            5 => Refused,
+            _ => NotImplemented,
+        }
+    }
+
+    pub fn reserved_bits_are_zero(&self) -> bool {
+        !has_bit(self.flags, 6) && !has_bit(self.flags, 5) && !has_bit(self.flags, 4)
+    }
 }
 
 fn is_end_byte(val: &[u8]) -> bool {
@@ -96,6 +162,12 @@ pub fn parse(data: &[u8]) -> Result<Packet> {
         },
         other => bail!("parse error: {:?}", other),
     }
+}
+
+#[inline]
+fn has_bit(flags: u16, bit: u8) -> bool {
+    assert!(bit < 16);
+    (flags & (1 << bit)) == (1 << bit)
 }
 
 #[cfg(test)]
