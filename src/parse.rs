@@ -18,6 +18,7 @@ pub struct Packet<'a> {
 
 #[derive(Debug)]
 pub struct Question<'a> {
+    label_from_end: usize,
     label: &'a [u8],
     req_type: u16,
     req_class: u16,
@@ -34,6 +35,10 @@ fn is_end_byte(val: &[u8]) -> bool {
     0 == val[0] || val[0] > 63
 }
 
+fn locate(from: &[u8]) -> IResult<&[u8], usize> {
+    IResult::Done(from, from.len())
+}
+
 named!(label<&[u8], &[u8]>,
     recognize!(many_till!(
         length_bytes!(be_u8),
@@ -41,22 +46,26 @@ named!(label<&[u8], &[u8]>,
     )));
 
 named!(question<&[u8], Question>, do_parse!(
+    position:  locate >>
     label:     label >>
     req_type:  be_u16 >>
     req_class: be_u16 >>
-    ( Question { label, req_type, req_class } )
+    ( Question {
+        label_from_end: position,
+        label,
+        req_type,
+        req_class
+    } )
 ));
 
 named!(rr<&[u8], Rr>, do_parse!(
-    label:     label >>
-    req_type:  be_u16 >>
-    req_class: be_u16 >>
+    question:  question >>
     ttl:       be_u32 >>
     data:      length_bytes!(be_u16) >>
     ( Rr {
+        question,
         ttl,
         data,
-        question: Question { label, req_type, req_class, },
     } )
 ));
 
