@@ -29,26 +29,28 @@ pub fn serve_forever() -> Result<()> {
         poll.poll(&mut events, None)?;
         for event in &events {
             let id: usize = event.token().into();
-            if id < sockets.len() {
-                let socket: &UdpSocket = &sockets[id];
-                let mut buf = [0u8; 512];
-                let (amt, whom) = socket.recv_from(&mut buf)?;
-                if amt < 12 {
-                    println!("[{:?}]: short read", whom);
-                    continue;
-                }
-
-                socket.send_to(
-                    match handle(&buf[..amt]) {
-                        Ok(Handle::ShortReply(r)) => short_reply(&mut buf, true, r),
-                        Err(e) => {
-                            println!("[{:?}]: error: {:?}", whom, e);
-                            short_reply(&mut buf, true, 2)
-                        }
-                    },
-                    &whom,
-                )?;
+            if id >= sockets.len() {
+                unreachable!()
             }
+
+            let socket: &UdpSocket = &sockets[id];
+            let mut buf = [0u8; 512];
+            let (amt, whom) = socket.recv_from(&mut buf)?;
+            if amt < 12 {
+                println!("[{:?}]: short read", whom);
+                continue;
+            }
+
+            socket.send_to(
+                match handle(&buf[..amt]) {
+                    Ok(Handle::ShortReply(r)) => short_reply(&mut buf, true, r),
+                    Err(e) => {
+                        println!("[{:?}]: error: {:?}", whom, e);
+                        short_reply(&mut buf, true, 2)
+                    }
+                },
+                &whom,
+            )?;
         }
     }
 }
