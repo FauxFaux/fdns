@@ -6,26 +6,33 @@ use parse;
 pub fn serve_forever() -> Result<()> {
     let poll = mio::Poll::new()?;
     let mut events = mio::Events::with_capacity(1024);
-    const SERVER: mio::Token = mio::Token(0);
 
-    let socket = mio::net::UdpSocket::bind(&"[::1]:6953".parse()?)?;
-    poll.register(
-        &socket,
-        SERVER,
-        mio::Ready::readable(),
-        mio::PollOpt::edge(),
-    )?;
+    let bind_addresses = &["[::1]:6953", "127.0.0.1:6953"];
+
+    let sockets = bind_addresses
+        .iter()
+        .enumerate()
+        .map(|(id, addr)| -> Result<mio::net::UdpSocket> {
+            let socket = mio::net::UdpSocket::bind(&addr.parse()?)?;
+            poll.register(
+                &socket,
+                mio::Token(id),
+                mio::Ready::readable(),
+                mio::PollOpt::edge(),
+            )?;
+            Ok(socket)
+        })
+        .collect::<Result<Vec<mio::net::UdpSocket>>>()?;
 
     loop {
         poll.poll(&mut events, None)?;
         for event in &events {
-            match event.token() {
-                SERVER => {
-                    let mut buf = [0u8; 520];
-                    let (amt, whom) = socket.recv_from(&mut buf)?;
-                    println!("[{:?}]: {:?}", whom, parse::parse(&buf[..amt])?);
-                }
-                _ => unreachable!(),
+            let id: usize = event.token().into();
+            if id < sockets.len() {
+                let socket = &sockets[id];
+                let mut buf = [0u8; 520];
+                let (amt, whom) = socket.recv_from(&mut buf)?;
+                println!("[{:?}]: {:?}", whom, parse::parse(&buf[..amt])?);
             }
         }
     }
