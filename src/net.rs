@@ -1,6 +1,3 @@
-use byteorder::ByteOrder;
-use byteorder::BigEndian;
-
 use mio;
 use mio::net::UdpSocket;
 
@@ -34,19 +31,21 @@ pub fn serve_forever() -> Result<()> {
             let id: usize = event.token().into();
             if id < sockets.len() {
                 let socket: &UdpSocket = &sockets[id];
-                let mut buf = [0u8; 520];
+                let mut buf = [0u8; 512];
                 let (amt, whom) = socket.recv_from(&mut buf)?;
-                let parsed = parse::parse(&buf[..amt])?;
+                if amt < 12 {
+                    println!("[{:?}]: short read", whom);
+                    continue;
+                }
 
                 socket.send_to(
-                    &short_reply(
-                        parsed.transaction_id,
-                        parsed.opcode(),
-                        false,
-                        false,
-                        true,
-                        parse::RCode::ServerFail,
-                    ),
+                    match handle(&buf[..amt]) {
+                        Ok(Handle::ShortReply(r)) => short_reply(&mut buf, true, r),
+                        Err(e) => {
+                            println!("[{:?}]: error: {:?}", whom, e);
+                            short_reply(&mut buf, true, 2)
+                        }
+                    },
                     &whom,
                 )?;
             }
@@ -54,17 +53,32 @@ pub fn serve_forever() -> Result<()> {
     }
 }
 
-fn short_reply(
-    id: u16,
-    opcode: parse::OpCode,
-    authoritative: bool,
-    truncated: bool,
-    recursion_available: bool,
-    rcode: parse::RCode,
-) -> [u8; 12] {
-    let mut ret = [0u8; 12];
-    BigEndian::write_u16(&mut ret, id);
-    ret[2] |= 0b1000_0000;
-    ret[3] |= 0b10;
-    ret
+enum Handle {
+    ShortReply(u8),
+}
+
+fn handle(buf: &[u8]) -> Result<Handle> {
+    let parsed = parse::parse(buf)?;
+    println!("{:?}", parsed);
+    Ok(Handle::ShortReply(5))
+}
+
+fn short_reply(buf: &mut [u8], recursion_available: bool, rcode: u8) -> &[u8] {
+    assert!(buf.len() >= 12);
+    assert!(rcode < 6);
+
+    // response = yes, (opcode, recursion-desired) copied
+    buf[2] = 0b1000_0000 | (buf[2] & 0b0111_1000) | (buf[2] & 0b1);
+
+    buf[3] = rcode;
+    if recursion_available {
+        buf[3] |= 0b1000_0000;
+    }
+
+
+    for i in 4..12 {
+        buf[i] = 0;
+    }
+
+    &buf[..12]
 }
