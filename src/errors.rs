@@ -4,3 +4,6 @@ error_chain! {
         Io(::std::io::Error);
     }
 }
+
+#[cfg(intellij_type_hinting)]
+pub use error_chain_for_dumb_ides::stubs::*;

@@ -5,6 +5,9 @@ extern crate mio;
 #[macro_use]
 extern crate nom;
 
+#[cfg(intellij_type_hinting)]
+extern crate error_chain_for_dumb_ides;
+
 mod errors;
 mod net;
 mod parse;
