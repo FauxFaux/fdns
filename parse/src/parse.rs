@@ -1,10 +1,11 @@
+use cast::usize;
+
 use nom::be_u8;
 use nom::be_u16;
 use nom::be_u32;
 use nom::IResult;
 
 use errors::*;
-use usize_from;
 
 #[derive(Debug)]
 pub struct Packet<'a> {
@@ -142,16 +143,15 @@ named!(record<&[u8], Packet>, do_parse!(
     answers:        be_u16 >>
     authorities:    be_u16 >>
     additionals:    be_u16 >>
-    questions:      count!(question, usize_from(questions))   >>
-    answers:        count!(rr,       usize_from(answers))     >>
-    authorities:    count!(rr,       usize_from(authorities)) >>
-    additionals:    count!(rr,       usize_from(additionals)) >>
+    questions:      count!(question, usize(questions))   >>
+    answers:        count!(rr,       usize(answers))     >>
+    authorities:    count!(rr,       usize(authorities)) >>
+    additionals:    count!(rr,       usize(additionals)) >>
     (Packet {
         transaction_id, flags,
         questions, answers, authorities, additionals,
     })
 ));
-
 
 pub fn parse(data: &[u8]) -> Result<Packet> {
     match record(data) {

@@ -1,15 +1,5 @@
-[package]
-authors = ["Chris West (Faux) <git@goeswhere.com>"]
-name = "fdns"
-version = "0.1.0"
-
-[dependencies]
-error-chain = "0.11"
-mio = "0.6"
-
-[dependencies.nom]
-features = ["nightly"]
-version = "3"
-
-[dev-dependencies.error-chain-for-dumb-ides]
-git = "https://github.com/FauxFaux/error-chain-for-dumb-ides"
+[workspace]
+members = [
+    "parse",
+    "tool",
+]

@@ -2,7 +2,7 @@ use mio;
 use mio::net::UdpSocket;
 
 use errors::*;
-use parse;
+use fdns_parse::parse;
 
 pub fn serve_forever() -> Result<()> {
     let poll = mio::Poll::new()?;
@@ -76,7 +76,6 @@ fn short_reply(buf: &mut [u8], recursion_available: bool, rcode: u8) -> &[u8] {
     if recursion_available {
         buf[3] |= 0b1000_0000;
     }
-
 
     for i in 4..12 {
         buf[i] = 0;

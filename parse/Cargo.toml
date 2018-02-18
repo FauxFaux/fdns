@@ -1,0 +1,11 @@
+[package]
+authors = ["Chris West (Faux) <git@goeswhere.com>"]
+name = "fdns-parse"
+version = "0.1.0"
+
+[dependencies]
+error-chain = "0.11"
+cast = "0.2"
+
+[dependencies.nom]
+version = "3"
