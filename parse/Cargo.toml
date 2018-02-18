@@ -9,4 +9,4 @@ cast = "0.2"
 
 [dependencies.nom]
 version = "3"
-features = ["nightly", "verbose-errors"]
+#features = ["nightly", "verbose-errors"]
