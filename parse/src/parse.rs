@@ -19,7 +19,6 @@ pub struct Packet<'a> {
 
 #[derive(Debug)]
 pub struct Question<'a> {
-    label_from_end: usize,
     label: &'a [u8],
     req_type: u16,
     req_class: u16,
@@ -98,10 +97,6 @@ impl<'a> Packet<'a> {
     }
 }
 
-fn locate(from: &[u8]) -> IResult<&[u8], usize> {
-    IResult::Done(from, from.len())
-}
-
 pub fn decode_label(label: &[u8], packet: &[u8]) -> Result<Vec<u8>> {
     let mut pos = 0;
     let mut ret = Vec::with_capacity(label.len());
@@ -156,12 +151,10 @@ fn label(from: &[u8]) -> IResult<&[u8], &[u8]> {
 }
 
 named!(question<&[u8], Question>, do_parse!(
-    position:  locate >>
     label:     label >>
     req_type:  be_u16 >>
     req_class: be_u16 >>
     ( Question {
-        label_from_end: position,
         label,
         req_type,
         req_class
@@ -238,7 +231,6 @@ mod tests {
         assert_eq!(1, packet.additionals.len());
 
         let first_question = &packet.questions[0];
-        assert_eq!(24, first_question.label_from_end);
         assert_eq!(b"\x03fau\x03xxx\0", first_question.label);
     }
 
