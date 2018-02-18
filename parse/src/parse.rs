@@ -1,6 +1,5 @@
 use cast::usize;
 
-use nom::be_u8;
 use nom::be_u16;
 use nom::be_u32;
 use nom::IResult;
@@ -99,18 +98,52 @@ impl<'a> Packet<'a> {
 }
 
 fn is_end_byte(val: &[u8]) -> bool {
-    0 == val[0] || val[0] > 63
+    0 == val[0]
 }
 
 fn locate(from: &[u8]) -> IResult<&[u8], usize> {
     IResult::Done(from, from.len())
 }
 
-named!(label<&[u8], &[u8]>,
+fn token(from: &[u8]) -> IResult<&[u8], &[u8]> {
+    let len = usize::from(from[0]);
+
+    if len < 64 {
+        IResult::Done(&from[len + 1..], &from[..len + 1])
+    } else {
+        IResult::Done(&from[2..], &from[..2])
+    }
+}
+
+fn label(from: &[u8]) -> IResult<&[u8], &[u8]> {
+    let mut pos = 0;
+    loop {
+        let len = usize::from(from[pos]);
+
+        pos += 1;
+
+        if 0 == len {
+            break;
+        }
+
+        if len < 64 {
+            pos += len;
+        } else {
+            pos += 1;
+            break;
+        }
+    }
+
+    IResult::Done(&from[pos..], &from[..pos])
+}
+
+
+named!(label_old<&[u8], &[u8]>,
     recognize!(many_till!(
-        length_bytes!(be_u8),
+        call!(token),
         verify!(take!(1), is_end_byte)
     )));
+
 
 named!(question<&[u8], Question>, do_parse!(
     position:  locate >>
@@ -203,5 +236,54 @@ mod tests {
         let (rem, matched) = label(exp).unwrap();
         assert_eq!(&[0u8; 0], rem);
         assert_eq!(exp, matched);
+    }
+
+    #[test]
+    fn label_ref() {
+        let exp = b"\x03fau\xc0\x0c";
+        let (rem, matched) = label(exp).unwrap();
+        assert_eq!(&[0u8; 0], rem);
+        assert_eq!(exp, matched);
+    }
+
+    #[test]
+    fn label_only_ref() {
+        let exp = b"\xc0\x0c";
+        let (rem, matched) = label(exp).unwrap();
+        assert_eq!(&[0u8; 0], rem);
+        assert_eq!(exp, matched);
+    }
+
+    #[test]
+    fn gmail_mx() {
+        #[cfg_attr(rustfmt, rustfmt_skip)]
+        let data = [
+            /* 0000 */ 0x3d, 0x1f, 0x81, 0x80, 0x00, 0x01, 0x00, 0x05, // =.......
+            /* 0008 */ 0x00, 0x00, 0x00, 0x01, 0x05, 0x67, 0x6d, 0x61, // .....gma
+            /* 0010 */ 0x69, 0x6c, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, // il.com..
+            /* 0018 */ 0x0f, 0x00, 0x01, 0xc0, 0x0c, 0x00, 0x0f, 0x00, // ........
+            /* 0020 */ 0x01, 0x00, 0x00, 0x02, 0x2b, 0x00, 0x20, 0x00, // ....+...
+            /* 0028 */ 0x1e, 0x04, 0x61, 0x6c, 0x74, 0x33, 0x0d, 0x67, // ..alt3.g
+            /* 0030 */ 0x6d, 0x61, 0x69, 0x6c, 0x2d, 0x73, 0x6d, 0x74, // mail-smt
+            /* 0038 */ 0x70, 0x2d, 0x69, 0x6e, 0x01, 0x6c, 0x06, 0x67, // p-in.l.g
+            /* 0040 */ 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0xc0, 0x12, 0xc0, // oogle...
+            /* 0048 */ 0x0c, 0x00, 0x0f, 0x00, 0x01, 0x00, 0x00, 0x02, // ........
+            /* 0050 */ 0x2b, 0x00, 0x09, 0x00, 0x14, 0x04, 0x61, 0x6c, // +.....al
+            /* 0058 */ 0x74, 0x32, 0xc0, 0x2e, 0xc0, 0x0c, 0x00, 0x0f, // t2......
+            /* 0060 */ 0x00, 0x01, 0x00, 0x00, 0x02, 0x2b, 0x00, 0x09, // .....+..
+            /* 0068 */ 0x00, 0x28, 0x04, 0x61, 0x6c, 0x74, 0x34, 0xc0, // .(.alt4.
+            /* 0070 */ 0x2e, 0xc0, 0x0c, 0x00, 0x0f, 0x00, 0x01, 0x00, // ........
+            /* 0078 */ 0x00, 0x02, 0x2b, 0x00, 0x09, 0x00, 0x0a, 0x04, // ..+.....
+            /* 0080 */ 0x61, 0x6c, 0x74, 0x31, 0xc0, 0x2e, 0xc0, 0x0c, // alt1....
+            /* 0088 */ 0x00, 0x0f, 0x00, 0x01, 0x00, 0x00, 0x02, 0x2b, // .......+
+            /* 0090 */ 0x00, 0x04, 0x00, 0x05, 0xc0, 0x2e, 0x00, 0x00, // ........
+            /* 0098 */ 0x29, 0xff, 0xd6, 0x00, 0x00, 0x00, 0x00, 0x00, // ).......
+            /* 00a0 */ 0x00,                                           // .
+        ];
+
+        let packet = parse(&data).unwrap();
+
+        assert_eq!(1, packet.questions.len());
+        assert_eq!(5, packet.answers.len());
     }
 }
