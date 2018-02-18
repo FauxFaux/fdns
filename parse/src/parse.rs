@@ -1,3 +1,5 @@
+use std::fmt;
+
 use cast::usize;
 
 use nom::be_u16;
@@ -7,8 +9,13 @@ use nom::Needed;
 
 use errors::*;
 
-#[derive(Debug)]
 pub struct Packet<'a> {
+    raw: &'a [u8],
+    decoded: DecodedPacket<'a>,
+}
+
+#[derive(Debug)]
+pub struct DecodedPacket<'a> {
     pub transaction_id: u16,
     flags: u16,
     questions: Vec<Question<'a>>,
@@ -95,6 +102,27 @@ impl<'a> Packet<'a> {
     pub fn reserved_bits_are_zero(&self) -> bool {
         !has_bit(self.flags, 6) && !has_bit(self.flags, 5) && !has_bit(self.flags, 4)
     }
+
+    pub fn decode_label(&self, label: &[u8]) -> Result<Vec<u8>> {
+        decode_label(label, self.raw)
+    }
+}
+
+// not proud of this; it's mostly working around nom being unable to
+// capture the entire input, and me being too lazy to copy-out the entire
+// Packet constructor twice
+impl<'a> ::std::ops::Deref for Packet<'a> {
+    type Target = DecodedPacket<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.decoded
+    }
+}
+
+impl<'a> fmt::Debug for Packet<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self.decoded)
+    }
 }
 
 pub fn decode_label(label: &[u8], packet: &[u8]) -> Result<Vec<u8>> {
@@ -172,7 +200,7 @@ named!(rr<&[u8], Rr>, do_parse!(
     } )
 ));
 
-named!(record<&[u8], Packet>, do_parse!(
+named!(record<&[u8], DecodedPacket>, do_parse!(
     transaction_id: be_u16 >>
     flags:          be_u16 >>
     questions:      be_u16 >>
@@ -183,7 +211,7 @@ named!(record<&[u8], Packet>, do_parse!(
     answers:        count!(rr,       usize(answers))     >>
     authorities:    count!(rr,       usize(authorities)) >>
     additionals:    count!(rr,       usize(additionals)) >>
-    (Packet {
+    (DecodedPacket {
         transaction_id, flags,
         questions, answers, authorities, additionals,
     })
@@ -191,10 +219,10 @@ named!(record<&[u8], Packet>, do_parse!(
 
 pub fn parse(data: &[u8]) -> Result<Packet> {
     match record(data) {
-        IResult::Done(rem, packet) => if rem.is_empty() {
-            Ok(packet)
+        IResult::Done(rem, decoded) => if rem.is_empty() {
+            Ok(Packet { raw: data, decoded })
         } else {
-            bail!("unxepected trailing data: {:?}", rem)
+            bail!("unexpected trailing data: {:?}", rem)
         },
         other => bail!("parse error: {:?}", other),
     }
@@ -292,7 +320,8 @@ mod tests {
 
         assert_eq!(
             b"gmail.com.",
-            decode_label(packet.answers[0].question.label, &data)
+            packet
+                .decode_label(packet.answers[0].question.label)
                 .unwrap()
                 .as_slice()
         );
