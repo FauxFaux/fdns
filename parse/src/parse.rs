@@ -102,6 +102,33 @@ fn locate(from: &[u8]) -> IResult<&[u8], usize> {
     IResult::Done(from, from.len())
 }
 
+pub fn decode_label(label: &[u8], packet: &[u8]) -> Result<Vec<u8>> {
+    let mut pos = 0;
+    let mut ret = Vec::with_capacity(label.len());
+    loop {
+        ensure!(pos < label.len(), "out of bounds read");
+        let len = usize::from(label[pos]);
+        pos += 1;
+
+        if 0 == len {
+            break;
+        }
+
+        if len < 64 {
+            ret.extend(&label[pos..pos + len]);
+            ret.push(b'.');
+            pos += len;
+        } else {
+            let off = (len & 0b0011_1111) * 0x10 + usize(label[pos]);
+            ret.extend(decode_label(&packet[off..], packet)
+                .chain_err(|| format!("processing {:?}", label))?);
+            break;
+        }
+    }
+
+    Ok(ret)
+}
+
 fn label(from: &[u8]) -> IResult<&[u8], &[u8]> {
     let mut pos = 0;
     loop {
@@ -190,6 +217,7 @@ fn has_bit(flags: u16, bit: u8) -> bool {
 mod tests {
     use super::parse;
     use super::label;
+    use super::decode_label;
 
     #[test]
     fn packet_a_fau_xxx() {
@@ -210,6 +238,7 @@ mod tests {
         assert_eq!(1, packet.additionals.len());
 
         let first_question = &packet.questions[0];
+        assert_eq!(24, first_question.label_from_end);
         assert_eq!(b"\x03fau\x03xxx\0", first_question.label);
     }
 
@@ -268,5 +297,20 @@ mod tests {
 
         assert_eq!(1, packet.questions.len());
         assert_eq!(5, packet.answers.len());
+
+        assert_eq!(
+            b"gmail.com.",
+            decode_label(packet.answers[0].question.label, &data)
+                .unwrap()
+                .as_slice()
+        );
+
+        // MX record, so two bytes of priority before the label
+        assert_eq!(
+            b"alt4.gmail-smtp-in.l.google.com.",
+            decode_label(&packet.answers[2].data[2..], &data)
+                .unwrap()
+                .as_slice()
+        );
     }
 }
