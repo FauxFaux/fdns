@@ -97,22 +97,8 @@ impl<'a> Packet<'a> {
     }
 }
 
-fn is_end_byte(val: &[u8]) -> bool {
-    0 == val[0]
-}
-
 fn locate(from: &[u8]) -> IResult<&[u8], usize> {
     IResult::Done(from, from.len())
-}
-
-fn token(from: &[u8]) -> IResult<&[u8], &[u8]> {
-    let len = usize::from(from[0]);
-
-    if len < 64 {
-        IResult::Done(&from[len + 1..], &from[..len + 1])
-    } else {
-        IResult::Done(&from[2..], &from[..2])
-    }
 }
 
 fn label(from: &[u8]) -> IResult<&[u8], &[u8]> {
@@ -136,14 +122,6 @@ fn label(from: &[u8]) -> IResult<&[u8], &[u8]> {
 
     IResult::Done(&from[pos..], &from[..pos])
 }
-
-
-named!(label_old<&[u8], &[u8]>,
-    recognize!(many_till!(
-        call!(token),
-        verify!(take!(1), is_end_byte)
-    )));
-
 
 named!(question<&[u8], Question>, do_parse!(
     position:  locate >>
