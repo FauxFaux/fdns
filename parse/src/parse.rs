@@ -3,6 +3,7 @@ use cast::usize;
 use nom::be_u16;
 use nom::be_u32;
 use nom::IResult;
+use nom::Needed;
 
 use errors::*;
 
@@ -104,6 +105,10 @@ fn locate(from: &[u8]) -> IResult<&[u8], usize> {
 fn label(from: &[u8]) -> IResult<&[u8], &[u8]> {
     let mut pos = 0;
     loop {
+        if pos >= from.len() {
+            return IResult::Incomplete(Needed::Size(pos));
+        }
+
         let len = usize::from(from[pos]);
 
         pos += 1;
