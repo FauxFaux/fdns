@@ -38,6 +38,7 @@ pub struct Rr<'a> {
     data: &'a [u8],
 }
 
+#[derive(Copy, Clone, Debug)]
 pub enum OpCode {
     Query,
     IQuery,
@@ -45,6 +46,7 @@ pub enum OpCode {
     Unknown,
 }
 
+#[derive(Copy, Clone, Debug)]
 pub enum RCode {
     NoError,
     FormatError,
@@ -121,7 +123,45 @@ impl<'a> ::std::ops::Deref for Packet<'a> {
 
 impl<'a> fmt::Debug for Packet<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self.decoded)
+        let d = &self.decoded;
+        write!(f, "tx:{:04x} ", d.transaction_id)?;
+        write!(f, "op: {:?} status: {:?} ", self.opcode(), self.rcode())?;
+        write!(f, "flags: ")?;
+        if self.is_query() {
+            write!(f, "qr ")?;
+        }
+        if self.is_authoritative() {
+            write!(f, "au ")?;
+        }
+        if self.is_truncated() {
+            write!(f, "tr ")?;
+        }
+        if self.is_recursion_desired() {
+            write!(f, "rd ")?;
+        }
+        if self.is_recursion_available() {
+            write!(f, "ra ")?;
+        }
+
+        for q in &self.questions {
+            write!(
+                f,
+                "q: {} ty: {} cl: {}; ",
+                String::from_utf8_lossy(&self.decode_label(q.label).unwrap()),
+                q.req_type,
+                q.req_class
+            )?;
+        }
+
+        write!(
+            f,
+            "ans: {}, auth: {}, add: {}",
+            self.answers.len(),
+            self.authorities.len(),
+            self.additionals.len()
+        )?;
+
+        Ok(())
     }
 }
 
