@@ -27,8 +27,8 @@ pub struct DecodedPacket<'a> {
 #[derive(Debug)]
 pub struct Question<'a> {
     label: &'a [u8],
-    req_type: u16,
-    req_class: u16,
+    req_type: RrType,
+    req_class: RrClass,
 }
 
 #[derive(Debug)]
@@ -38,7 +38,7 @@ pub struct Rr<'a> {
     data: &'a [u8],
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum OpCode {
     Query,
     IQuery,
@@ -46,7 +46,7 @@ pub enum OpCode {
     Unknown,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum RCode {
     NoError,
     FormatError,
@@ -55,6 +55,24 @@ pub enum RCode {
     NotImplemented,
     Refused,
     Unknown,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum RrClass {
+    Internet,
+    Unknown(u16),
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum RrType {
+    A,
+    Aaaa,
+    Ns,
+    CName,
+    Mx,
+    Txt,
+    Srv,
+    Unknown(u16),
 }
 
 impl<'a> Packet<'a> {
@@ -146,7 +164,7 @@ impl<'a> fmt::Debug for Packet<'a> {
         for q in &self.questions {
             write!(
                 f,
-                "q: {} ty: {} cl: {}; ",
+                "q: {} ty: {:?} cl: {:?}; ",
                 String::from_utf8_lossy(&self.decode_label(q.label).unwrap()),
                 q.req_type,
                 q.req_class
@@ -162,6 +180,56 @@ impl<'a> fmt::Debug for Packet<'a> {
         )?;
 
         Ok(())
+    }
+}
+
+impl From<u16> for RrClass {
+    fn from(be: u16) -> Self {
+        match be {
+            1 => RrClass::Internet,
+            other => RrClass::Unknown(other),
+        }
+    }
+}
+
+impl From<RrClass> for u16 {
+    fn from(be: RrClass) -> Self {
+        match be {
+            RrClass::Internet => 1,
+            RrClass::Unknown(other) => other,
+        }
+    }
+}
+
+impl From<u16> for RrType {
+    fn from(be: u16) -> RrType {
+        use self::RrType::*;
+        match be {
+            1 => A,
+            28 => Aaaa,
+            2 => Ns,
+            5 => CName,
+            15 => Mx,
+            16 => Txt,
+            33 => Srv,
+            other => Unknown(other),
+        }
+    }
+}
+
+impl From<RrType> for u16 {
+    fn from(rr: RrType) -> u16 {
+        use self::RrType::*;
+        match rr {
+            A => 1,
+            Aaaa => 28,
+            Ns => 2,
+            CName => 5,
+            Mx => 15,
+            Txt => 16,
+            Srv => 33,
+            Unknown(other) => other,
+        }
     }
 }
 
@@ -224,8 +292,8 @@ named!(question<&[u8], Question>, do_parse!(
     req_class: be_u16 >>
     ( Question {
         label,
-        req_type,
-        req_class
+        req_type: req_type.into(),
+        req_class: req_class.into(),
     } )
 ));
 
