@@ -2,7 +2,7 @@ use mio;
 use mio::net::UdpSocket;
 
 use errors::*;
-use fdns_parse::parse;
+use fdns_format::parse;
 
 pub fn serve_forever() -> Result<()> {
     let poll = mio::Poll::new()?;

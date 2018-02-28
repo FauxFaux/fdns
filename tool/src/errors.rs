@@ -1,6 +1,6 @@
 error_chain! {
     links {
-        Parse(::fdns_parse::Error, ::fdns_parse::ErrorKind);
+        Format(::fdns_format::Error, ::fdns_format::ErrorKind);
     }
 
     foreign_links {

@@ -1,6 +1,6 @@
 #[macro_use]
 extern crate error_chain;
-extern crate fdns_parse;
+extern crate fdns_format;
 extern crate mio;
 
 mod errors;

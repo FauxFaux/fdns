@@ -1,6 +1,6 @@
 [package]
 authors = ["Chris West (Faux) <git@goeswhere.com>"]
-name = "fdns-parse"
+name = "fdns-format"
 version = "0.1.0"
 
 [dependencies]
