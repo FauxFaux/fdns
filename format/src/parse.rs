@@ -21,25 +21,25 @@ pub struct Packet<'a> {
 #[derive(Debug)]
 pub struct DecodedPacket<'a> {
     pub transaction_id: u16,
-    flags: u16,
-    questions: Vec<Question<'a>>,
-    answers: Vec<Rr<'a>>,
-    authorities: Vec<Rr<'a>>,
-    additionals: Vec<Rr<'a>>,
+    pub flags: u16,
+    pub questions: Vec<Question<'a>>,
+    pub answers: Vec<Rr<'a>>,
+    pub authorities: Vec<Rr<'a>>,
+    pub additionals: Vec<Rr<'a>>,
 }
 
 #[derive(Debug)]
 pub struct Question<'a> {
-    label: &'a [u8],
-    req_type: RrType,
-    req_class: RrClass,
+    pub label: &'a [u8],
+    pub req_type: RrType,
+    pub req_class: RrClass,
 }
 
 #[derive(Debug)]
 pub struct Rr<'a> {
-    question: Question<'a>,
-    ttl: u32,
-    data: &'a [u8],
+    pub question: Question<'a>,
+    pub ttl: u32,
+    pub data: &'a [u8],
 }
 
 impl<'a> Packet<'a> {

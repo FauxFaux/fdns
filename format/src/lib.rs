@@ -13,7 +13,6 @@ pub mod parse;
 
 pub use errors::*;
 
-
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum OpCode {
     Query,
