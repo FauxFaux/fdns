@@ -27,9 +27,9 @@ pub struct Question {
 
 #[derive(Clone, Debug)]
 pub struct Rr {
-    question: Question,
-    ttl: u32,
-    data: Vec<u8>,
+    pub question: Question,
+    pub ttl: u32,
+    pub data: Vec<u8>,
 }
 
 impl Builder {
@@ -58,7 +58,21 @@ impl Builder {
     }
 
     pub fn build(&self) -> Result<Vec<u8>> {
-        let mut dat = Vec::with_capacity(12);
+        const HEADER_LEN: usize = 12;
+        const QUESTION_LEN: usize = 2 + 2 + 2;
+        const RR_LEN: usize = QUESTION_LEN + 4 + 2 + 4;
+
+        let mut dat = Vec::with_capacity(
+            HEADER_LEN + QUESTION_LEN
+                + RR_LEN * (self.answers.len() + self.authorities.len() + self.additionals.len()),
+        );
+
+        self.append(&mut dat)?;
+
+        Ok(dat)
+    }
+
+    pub fn append(&self, dat: &mut Vec<u8>) -> Result<()> {
         dat.write_u16::<BigEndian>(self.transaction_id)?;
         dat.write_u16::<BigEndian>(self.flags)?;
         dat.write_u16::<BigEndian>(match self.question {
@@ -70,15 +84,22 @@ impl Builder {
         dat.write_u16::<BigEndian>(u16(self.additionals.len())?)?;
 
         if let Some(ref question) = self.question {
-            write_label(&mut dat, &question.label)?;
-            dat.write_u16::<BigEndian>(question.req_type.into())?;
-            dat.write_u16::<BigEndian>(question.req_class.into())?;
+            write_question(dat, question)?;
         }
-        assert_eq!(0, self.answers.len());
-        assert_eq!(0, self.authorities.len());
-        assert_eq!(0, self.additionals.len());
 
-        Ok(dat)
+        for rr in &self.answers {
+            write_rr(dat, rr)?;
+        }
+
+        for rr in &self.authorities {
+            write_rr(dat, rr)?;
+        }
+
+        for rr in &self.additionals {
+            write_rr(dat, rr)?;
+        }
+
+        Ok(())
     }
 }
 
@@ -98,5 +119,20 @@ fn write_label<S: AsRef<str>>(dest: &mut Vec<u8>, label: S) -> Result<()> {
         dest.extend(part.bytes());
     }
     assert_eq!(0, dest[dest.len() - 1]);
+    Ok(())
+}
+
+fn write_question(dat: &mut Vec<u8>, question: &Question) -> Result<()> {
+    write_label(dat, &question.label)?;
+    dat.write_u16::<BigEndian>(question.req_type.into())?;
+    dat.write_u16::<BigEndian>(question.req_class.into())?;
+    Ok(())
+}
+
+fn write_rr(dat: &mut Vec<u8>, rr: &Rr) -> Result<()> {
+    write_question(dat, &rr.question)?;
+    dat.write_u32::<BigEndian>(rr.ttl)?;
+    dat.write_u16::<BigEndian>(u16(rr.data.len())?)?;
+    dat.extend(&rr.data);
     Ok(())
 }
