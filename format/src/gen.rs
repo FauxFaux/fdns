@@ -57,35 +57,28 @@ impl Builder {
         self
     }
 
-    pub fn build(&self) -> Vec<u8> {
+    pub fn build(&self) -> Result<Vec<u8>> {
         let mut dat = Vec::with_capacity(12);
-        dat.write_u16::<BigEndian>(self.transaction_id).unwrap();
-        dat.write_u16::<BigEndian>(self.flags).unwrap();
+        dat.write_u16::<BigEndian>(self.transaction_id)?;
+        dat.write_u16::<BigEndian>(self.flags)?;
         dat.write_u16::<BigEndian>(match self.question {
             Some(_) => 1,
             None => 0,
-        }).unwrap();
-        dat.write_u16::<BigEndian>(u16(self.answers.len()).unwrap())
-            .unwrap();
-        dat.write_u16::<BigEndian>(u16(self.authorities.len()).unwrap())
-            .unwrap();
-        dat.write_u16::<BigEndian>(u16(self.additionals.len()).unwrap())
-            .unwrap();
+        })?;
+        dat.write_u16::<BigEndian>(u16(self.answers.len())?)?;
+        dat.write_u16::<BigEndian>(u16(self.authorities.len())?)?;
+        dat.write_u16::<BigEndian>(u16(self.additionals.len())?)?;
 
-        // TODO: ..the actual data
         if let Some(ref question) = self.question {
-            write_label(&mut dat, &question.label)
-                .expect("label validation can actually fail here...");
-            dat.write_u16::<BigEndian>(question.req_type.into())
-                .expect("writing to vec");
-            dat.write_u16::<BigEndian>(question.req_class.into())
-                .expect("writing to vec");
+            write_label(&mut dat, &question.label)?;
+            dat.write_u16::<BigEndian>(question.req_type.into())?;
+            dat.write_u16::<BigEndian>(question.req_class.into())?;
         }
         assert_eq!(0, self.answers.len());
         assert_eq!(0, self.authorities.len());
         assert_eq!(0, self.additionals.len());
 
-        dat
+        Ok(dat)
     }
 }
 
