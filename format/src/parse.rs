@@ -2,16 +2,16 @@ use std::fmt;
 
 use cast::usize;
 
-use nom::be_u16;
-use nom::be_u32;
 use nom::IResult;
 use nom::Needed;
+use nom::be_u16;
+use nom::be_u32;
 
-use errors::*;
 use OpCode;
 use RCode;
 use RrClass;
 use RrType;
+use errors::*;
 
 pub struct Packet<'a> {
     raw: &'a [u8],
@@ -261,9 +261,9 @@ fn has_bit(flags: u16, bit: u8) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::parse;
-    use super::label;
     use super::decode_label;
+    use super::label;
+    use super::parse;
 
     #[test]
     fn packet_a_fau_xxx() {

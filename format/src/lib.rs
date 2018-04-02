@@ -7,8 +7,8 @@ extern crate error_chain;
 #[macro_use]
 extern crate nom;
 
-pub mod gen;
 mod errors;
+pub mod gen;
 pub mod parse;
 
 pub use errors::*;

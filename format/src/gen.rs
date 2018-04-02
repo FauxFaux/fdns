@@ -3,10 +3,10 @@ use byteorder::WriteBytesExt;
 use cast::u16;
 use cast::u8;
 
-use errors::*;
 use RCode;
 use RrClass;
 use RrType;
+use errors::*;
 
 #[derive(Clone, Debug, Default)]
 pub struct Builder {
