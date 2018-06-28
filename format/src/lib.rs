@@ -2,16 +2,13 @@ extern crate byteorder;
 extern crate cast;
 
 #[macro_use]
-extern crate error_chain;
+extern crate failure;
 
 #[macro_use]
 extern crate nom;
 
-mod errors;
 pub mod gen;
 pub mod parse;
-
-pub use errors::*;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum OpCode {

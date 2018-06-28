@@ -1,15 +1,11 @@
-#[macro_use]
-extern crate error_chain;
+extern crate failure;
 extern crate fdns_format;
 extern crate mio;
 
-mod errors;
 mod net;
 
-use errors::*;
+use failure::Error;
 
-quick_main!(run);
-
-fn run() -> Result<()> {
+fn main() -> Result<(), Error> {
     net::serve_forever()
 }

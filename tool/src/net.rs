@@ -1,10 +1,10 @@
+use failure::Error;
 use mio;
 use mio::net::UdpSocket;
 
-use errors::*;
 use fdns_format::parse;
 
-pub fn serve_forever() -> Result<()> {
+pub fn serve_forever() -> Result<(), Error> {
     let poll = mio::Poll::new()?;
     let mut events = mio::Events::with_capacity(1024);
 
@@ -13,7 +13,7 @@ pub fn serve_forever() -> Result<()> {
     let sockets = bind_addresses
         .iter()
         .enumerate()
-        .map(|(id, addr)| -> Result<UdpSocket> {
+        .map(|(id, addr)| -> Result<UdpSocket, Error> {
             let socket = UdpSocket::bind(&addr.parse()?)?;
             poll.register(
                 &socket,
@@ -23,7 +23,7 @@ pub fn serve_forever() -> Result<()> {
             )?;
             Ok(socket)
         })
-        .collect::<Result<Vec<UdpSocket>>>()?;
+        .collect::<Result<Vec<UdpSocket>, Error>>()?;
 
     loop {
         poll.poll(&mut events, None)?;
@@ -59,7 +59,7 @@ enum Handle {
     ShortReply(u8),
 }
 
-fn handle(buf: &[u8]) -> Result<Handle> {
+fn handle(buf: &[u8]) -> Result<Handle, Error> {
     let parsed = parse::parse(buf)?;
     println!("{:?}", parsed);
     Ok(Handle::ShortReply(5))

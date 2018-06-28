@@ -2,8 +2,8 @@ use byteorder::BigEndian;
 use byteorder::WriteBytesExt;
 use cast::u16;
 use cast::u8;
+use failure::Error;
 
-use errors::*;
 use RCode;
 use RrClass;
 use RrType;
@@ -57,7 +57,7 @@ impl Builder {
         self
     }
 
-    pub fn build(&self) -> Result<Vec<u8>> {
+    pub fn build(&self) -> Result<Vec<u8>, Error> {
         const HEADER_LEN: usize = 12;
         const QUESTION_LEN: usize = 2 + 2 + 2;
         const RR_LEN: usize = QUESTION_LEN + 4 + 2 + 4;
@@ -73,7 +73,7 @@ impl Builder {
         Ok(dat)
     }
 
-    pub fn append(&self, dat: &mut Vec<u8>) -> Result<()> {
+    pub fn append(&self, dat: &mut Vec<u8>) -> Result<(), Error> {
         dat.write_u16::<BigEndian>(self.transaction_id)?;
         dat.write_u16::<BigEndian>(self.flags)?;
         dat.write_u16::<BigEndian>(match self.question {
@@ -114,7 +114,7 @@ impl Question {
     }
 }
 
-fn write_label<S: AsRef<str>>(dest: &mut Vec<u8>, label: S) -> Result<()> {
+fn write_label<S: AsRef<str>>(dest: &mut Vec<u8>, label: S) -> Result<(), Error> {
     for part in label.as_ref().split('.') {
         dest.push(u8(part.len())?);
         dest.extend(part.bytes());
@@ -123,14 +123,14 @@ fn write_label<S: AsRef<str>>(dest: &mut Vec<u8>, label: S) -> Result<()> {
     Ok(())
 }
 
-fn write_question(dat: &mut Vec<u8>, question: &Question) -> Result<()> {
+fn write_question(dat: &mut Vec<u8>, question: &Question) -> Result<(), Error> {
     write_label(dat, &question.label)?;
     dat.write_u16::<BigEndian>(question.req_type.into())?;
     dat.write_u16::<BigEndian>(question.req_class.into())?;
     Ok(())
 }
 
-fn write_rr(dat: &mut Vec<u8>, rr: &Rr) -> Result<()> {
+fn write_rr(dat: &mut Vec<u8>, rr: &Rr) -> Result<(), Error> {
     write_question(dat, &rr.question)?;
     dat.write_u32::<BigEndian>(rr.ttl)?;
     dat.write_u16::<BigEndian>(u16(rr.data.len())?)?;
