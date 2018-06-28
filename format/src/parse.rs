@@ -4,6 +4,7 @@ use cast::usize;
 
 use failure::Error;
 use failure::ResultExt;
+use nom;
 use nom::be_u16;
 use nom::be_u32;
 use nom::IResult;
@@ -184,7 +185,7 @@ fn label(from: &[u8]) -> IResult<&[u8], &[u8]> {
     let mut pos = 0;
     loop {
         if pos >= from.len() {
-            return IResult::Incomplete(Needed::Size(pos));
+            return Err(nom::Err::Incomplete(Needed::Size(pos)));
         }
 
         let len = usize::from(from[pos]);
@@ -203,7 +204,7 @@ fn label(from: &[u8]) -> IResult<&[u8], &[u8]> {
         }
     }
 
-    IResult::Done(&from[pos..], &from[..pos])
+    Ok((&from[pos..], &from[..pos]))
 }
 
 named!(question<&[u8], Question>, do_parse!(
@@ -247,7 +248,7 @@ named!(record<&[u8], DecodedPacket>, do_parse!(
 
 pub fn parse(data: &[u8]) -> Result<Packet, Error> {
     match record(data) {
-        IResult::Done(rem, decoded) => if rem.is_empty() {
+        Ok((rem, decoded)) => if rem.is_empty() {
             Ok(Packet { raw: data, decoded })
         } else {
             bail!("unexpected trailing data: {:?}", rem)

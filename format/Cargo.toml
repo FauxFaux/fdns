@@ -9,5 +9,5 @@ cast = "0.2"
 failure = "0.1"
 
 [dependencies.nom]
-version = "3"
+version = "4"
 #features = ["nightly", "verbose-errors"]
