@@ -2,16 +2,16 @@ use std::fmt;
 
 use cast::usize;
 
-use nom::IResult;
-use nom::Needed;
 use nom::be_u16;
 use nom::be_u32;
+use nom::IResult;
+use nom::Needed;
 
+use errors::*;
 use OpCode;
 use RCode;
 use RrClass;
 use RrType;
-use errors::*;
 
 pub struct Packet<'a> {
     raw: &'a [u8],
@@ -168,8 +168,10 @@ pub fn decode_label(label: &[u8], packet: &[u8]) -> Result<Vec<u8>> {
             pos += len;
         } else {
             let off = (len & 0b0011_1111) * 0x10 + usize(label[pos]);
-            ret.extend(decode_label(&packet[off..], packet)
-                .chain_err(|| format!("processing {:?}", label))?);
+            ret.extend(
+                decode_label(&packet[off..], packet)
+                    .chain_err(|| format!("processing {:?}", label))?,
+            );
             break;
         }
     }

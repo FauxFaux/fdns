@@ -3,10 +3,10 @@ use byteorder::WriteBytesExt;
 use cast::u16;
 use cast::u8;
 
+use errors::*;
 use RCode;
 use RrClass;
 use RrType;
-use errors::*;
 
 #[derive(Clone, Debug, Default)]
 pub struct Builder {
@@ -63,7 +63,8 @@ impl Builder {
         const RR_LEN: usize = QUESTION_LEN + 4 + 2 + 4;
 
         let mut dat = Vec::with_capacity(
-            HEADER_LEN + QUESTION_LEN
+            HEADER_LEN
+                + QUESTION_LEN
                 + RR_LEN * (self.answers.len() + self.authorities.len() + self.additionals.len()),
         );
 
