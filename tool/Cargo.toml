@@ -3,6 +3,8 @@ authors = ["Chris West (Faux) <git@goeswhere.com>"]
 name = "fdns"
 version = "0.1.0"
 
+edition = "2018"
+
 [dependencies]
 cast = "0.2"
 failure = "0.1"

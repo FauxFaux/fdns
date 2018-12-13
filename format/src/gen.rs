@@ -4,9 +4,9 @@ use cast::u16;
 use cast::u8;
 use failure::Error;
 
-use RCode;
-use RrClass;
-use RrType;
+use crate::RCode;
+use crate::RrClass;
+use crate::RrType;
 
 #[derive(Clone, Debug, Default)]
 pub struct Builder {

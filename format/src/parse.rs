@@ -1,7 +1,6 @@
 use std::fmt;
 
 use cast::usize;
-
 use failure::Error;
 use failure::ResultExt;
 use nom;
@@ -10,10 +9,10 @@ use nom::be_u32;
 use nom::IResult;
 use nom::Needed;
 
-use OpCode;
-use RCode;
-use RrClass;
-use RrType;
+use crate::OpCode;
+use crate::RCode;
+use crate::RrClass;
+use crate::RrType;
 
 pub struct Packet<'a> {
     raw: &'a [u8],
@@ -66,7 +65,7 @@ impl<'a> Packet<'a> {
     }
 
     pub fn opcode(&self) -> OpCode {
-        use OpCode::*;
+        use crate::OpCode::*;
         match (self.flags << 11) & 0b1111 {
             0 => Query,
             1 => IQuery,
@@ -76,7 +75,7 @@ impl<'a> Packet<'a> {
     }
 
     pub fn rcode(&self) -> RCode {
-        use RCode::*;
+        use crate::RCode::*;
         match self.flags & 0b1111 {
             0 => NoError,
             1 => FormatError,
@@ -248,11 +247,13 @@ named!(record<&[u8], DecodedPacket>, do_parse!(
 
 pub fn parse(data: &[u8]) -> Result<Packet, Error> {
     match record(data) {
-        Ok((rem, decoded)) => if rem.is_empty() {
-            Ok(Packet { raw: data, decoded })
-        } else {
-            bail!("unexpected trailing data: {:?}", rem)
-        },
+        Ok((rem, decoded)) => {
+            if rem.is_empty() {
+                Ok(Packet { raw: data, decoded })
+            } else {
+                bail!("unexpected trailing data: {:?}", rem)
+            }
+        }
         other => bail!("parse error: {:?}", other),
     }
 }

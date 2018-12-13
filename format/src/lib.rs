@@ -49,7 +49,7 @@ pub enum RrType {
 
 impl From<u8> for RCode {
     fn from(bits: u8) -> Self {
-        use RCode::*;
+        use crate::RCode::*;
         match bits & 0b1111 {
             0 => NoError,
             1 => FormatError,
@@ -64,7 +64,7 @@ impl From<u8> for RCode {
 
 impl RCode {
     fn mask(&self) -> u8 {
-        use RCode::*;
+        use crate::RCode::*;
         match *self {
             NoError => 0,
             FormatError => 1,
