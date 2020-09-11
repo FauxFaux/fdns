@@ -1,8 +1,8 @@
+use std::convert::TryFrom;
+
 use anyhow::Error;
 use byteorder::BigEndian;
 use byteorder::WriteBytesExt;
-use cast::u16;
-use cast::u8;
 
 use crate::RCode;
 use crate::RrClass;
@@ -43,7 +43,7 @@ impl Builder {
     }
 
     pub fn error(&mut self, code: RCode) -> &mut Builder {
-        self.flags = (self.flags & !0b1111) | u16(code.mask());
+        self.flags = (self.flags & !0b1111) | u16::from(code.mask());
         self
     }
 
@@ -80,9 +80,9 @@ impl Builder {
             Some(_) => 1,
             None => 0,
         })?;
-        dat.write_u16::<BigEndian>(u16(self.answers.len())?)?;
-        dat.write_u16::<BigEndian>(u16(self.authorities.len())?)?;
-        dat.write_u16::<BigEndian>(u16(self.additionals.len())?)?;
+        dat.write_u16::<BigEndian>(u16::try_from(self.answers.len())?)?;
+        dat.write_u16::<BigEndian>(u16::try_from(self.authorities.len())?)?;
+        dat.write_u16::<BigEndian>(u16::try_from(self.additionals.len())?)?;
 
         if let Some(ref question) = self.question {
             write_question(dat, question)?;
@@ -116,7 +116,7 @@ impl Question {
 
 fn write_label<S: AsRef<str>>(dest: &mut Vec<u8>, label: S) -> Result<(), Error> {
     for part in label.as_ref().split('.') {
-        dest.push(u8(part.len())?);
+        dest.push(u8::try_from(part.len())?);
         dest.extend(part.bytes());
     }
     assert_eq!(0, dest[dest.len() - 1]);
@@ -133,7 +133,7 @@ fn write_question(dat: &mut Vec<u8>, question: &Question) -> Result<(), Error> {
 fn write_rr(dat: &mut Vec<u8>, rr: &Rr) -> Result<(), Error> {
     write_question(dat, &rr.question)?;
     dat.write_u32::<BigEndian>(rr.ttl)?;
-    dat.write_u16::<BigEndian>(u16(rr.data.len())?)?;
+    dat.write_u16::<BigEndian>(u16::try_from(rr.data.len())?)?;
     dat.extend(&rr.data);
     Ok(())
 }

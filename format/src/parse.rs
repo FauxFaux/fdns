@@ -5,7 +5,6 @@ use anyhow::bail;
 use anyhow::ensure;
 use anyhow::Context;
 use anyhow::Result;
-use cast::usize;
 use nom;
 use nom::be_u16;
 use nom::be_u32;
@@ -171,7 +170,7 @@ pub fn decode_label(label: &[u8], packet: &[u8]) -> Result<Vec<u8>> {
             ret.push(b'.');
             pos += len;
         } else {
-            let off = (len & 0b0011_1111) * 0x10 + usize(label[pos]);
+            let off = (len & 0b0011_1111) * 0x10 + usize::from(label[pos]);
             ret.extend(
                 decode_label(&packet[off..], packet)
                     .with_context(|| anyhow!("processing {:?}", label))?,
@@ -238,10 +237,10 @@ named!(record<&[u8], DecodedPacket>, do_parse!(
     answers:        be_u16 >>
     authorities:    be_u16 >>
     additionals:    be_u16 >>
-    questions:      count!(question, usize(questions))   >>
-    answers:        count!(rr,       usize(answers))     >>
-    authorities:    count!(rr,       usize(authorities)) >>
-    additionals:    count!(rr,       usize(additionals)) >>
+    questions:      count!(question, usize::from(questions))   >>
+    answers:        count!(rr,       usize::from(answers))     >>
+    authorities:    count!(rr,       usize::from(authorities)) >>
+    additionals:    count!(rr,       usize::from(additionals)) >>
     (DecodedPacket {
         transaction_id, flags,
         questions, answers, authorities, additionals,

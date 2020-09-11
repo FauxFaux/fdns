@@ -8,7 +8,6 @@ edition = "2018"
 [dependencies]
 anyhow = "1"
 byteorder = "1"
-cast = "0.2"
 
 [dependencies.nom]
 version = "4"

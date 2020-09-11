@@ -7,6 +7,5 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1"
-cast = "0.2"
 mio = "0.6"
 fdns-format = { path = "../format" }
