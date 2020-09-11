@@ -1,8 +1,8 @@
+use anyhow::Error;
 use byteorder::BigEndian;
 use byteorder::WriteBytesExt;
 use cast::u16;
 use cast::u8;
-use failure::Error;
 
 use crate::RCode;
 use crate::RrClass;

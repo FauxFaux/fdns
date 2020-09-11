@@ -1,11 +1,7 @@
-extern crate failure;
-extern crate fdns_format;
-extern crate mio;
-
 mod net;
 
-use failure::Error;
+use anyhow::Result;
 
-fn main() -> Result<(), Error> {
+fn main() -> Result<()> {
     net::serve_forever()
 }

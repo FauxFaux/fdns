@@ -1,8 +1,11 @@
 use std::fmt;
 
+use anyhow::anyhow;
+use anyhow::bail;
+use anyhow::ensure;
+use anyhow::Context;
+use anyhow::Result;
 use cast::usize;
-use failure::Error;
-use failure::ResultExt;
 use nom;
 use nom::be_u16;
 use nom::be_u32;
@@ -91,7 +94,7 @@ impl<'a> Packet<'a> {
         !has_bit(self.flags, 6) && !has_bit(self.flags, 5) && !has_bit(self.flags, 4)
     }
 
-    pub fn decode_label(&self, label: &[u8]) -> Result<Vec<u8>, Error> {
+    pub fn decode_label(&self, label: &[u8]) -> Result<Vec<u8>> {
         decode_label(label, self.raw)
     }
 }
@@ -151,7 +154,7 @@ impl<'a> fmt::Debug for Packet<'a> {
     }
 }
 
-pub fn decode_label(label: &[u8], packet: &[u8]) -> Result<Vec<u8>, Error> {
+pub fn decode_label(label: &[u8], packet: &[u8]) -> Result<Vec<u8>> {
     let mut pos = 0;
     let mut ret = Vec::with_capacity(label.len());
     loop {
@@ -171,7 +174,7 @@ pub fn decode_label(label: &[u8], packet: &[u8]) -> Result<Vec<u8>, Error> {
             let off = (len & 0b0011_1111) * 0x10 + usize(label[pos]);
             ret.extend(
                 decode_label(&packet[off..], packet)
-                    .with_context(|_| format_err!("processing {:?}", label))?,
+                    .with_context(|| anyhow!("processing {:?}", label))?,
             );
             break;
         }
@@ -245,7 +248,7 @@ named!(record<&[u8], DecodedPacket>, do_parse!(
     })
 ));
 
-pub fn parse(data: &[u8]) -> Result<Packet, Error> {
+pub fn parse(data: &[u8]) -> Result<Packet> {
     match record(data) {
         Ok((rem, decoded)) => {
             if rem.is_empty() {
